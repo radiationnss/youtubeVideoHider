@@ -1,0 +1,11 @@
+# Ignore node modules
+node_modules/
+
+# Ignore all JavaScript files (compiled files)
+*.js
+
+# Optionally ignore source maps
+*.js.map
+
+# Ignore build output folder (if you use dist/)
+dist/

@@ -1,0 +1,11 @@
+{
+  "name": "youtube-video-hider",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.326",
+    "typescript": "^5.0.0"
+  }
+}

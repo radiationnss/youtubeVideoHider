@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Video Hider",
+  "version": "1.0",
+  "description": "Hide YouTube videos with unwanted keywords.",
+  "permissions": ["scripting"],
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": ["lib/content.js"]
+    }
+  ],
+  "host_permissions": ["*://www.youtube.com/*"],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
