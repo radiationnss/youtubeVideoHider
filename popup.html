@@ -1,17 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Video Hider</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YouTube Video Hider</title>
     <style>
-      body { font-family: sans-serif; padding: 10px; width: 250px; }
-      textarea { width: 100%; height: 60px; }
+      :root { color-scheme: light dark; font: 14px/1.45 system-ui, sans-serif; }
+      body { box-sizing: border-box; margin: 0; padding: 16px; width: 320px; }
+      h1 { font-size: 17px; margin: 0 0 12px; }
+      label { display: block; font-weight: 600; margin-bottom: 6px; }
+      textarea { box-sizing: border-box; width: 100%; min-height: 76px; resize: vertical; padding: 8px; font: inherit; }
+      .hint { margin: 5px 0 12px; color: #777; font-size: 12px; }
+      .toggle { display: flex; align-items: center; gap: 8px; margin: 12px 0; font-weight: 400; }
+      .actions { display: flex; gap: 8px; }
+      button { padding: 7px 12px; font: inherit; cursor: pointer; }
+      #apply { flex: 1; }
+      #status { min-height: 20px; margin: 10px 0 0; font-size: 12px; }
+      #status[data-error="true"] { color: #c33; }
     </style>
   </head>
   <body>
-    <h3>Enter blacklist words</h3>
-    <textarea id="keywords" placeholder="e.g. MrBeast, Shorts, Fortnite"></textarea>
-    <button id="apply">Hide Videos</button>
+    <h1>YouTube Video Hider</h1>
+    <label for="keywords">Hide videos whose titles contain</label>
+    <textarea id="keywords" placeholder="MrBeast, Fortnite, Shorts"></textarea>
+    <p class="hint">Separate keywords or phrases with commas.</p>
+    <label class="toggle"><input id="enabled" type="checkbox" checked /> Filtering is enabled</label>
+    <div class="actions">
+      <button id="apply" type="button">Save and apply</button>
+      <button id="clear" type="button">Clear</button>
+    </div>
+    <p id="status" role="status" aria-live="polite"></p>
     <script src="lib/popup.js"></script>
   </body>
 </html>
-

@@ -1,42 +1,98 @@
-const blacklist = ["MrBeast", "Fortnite", "Shorts"]; // Example keywords
+(() => {
+type FilterSettings = {
+  keywords: string[];
+  enabled: boolean;
+};
 
-function hideVideos() {
-  const videoItems = document.querySelectorAll('ytd-rich-item-renderer, ytd-video-renderer');
+const SETTINGS_KEY = "youtubeVideoHiderSettings";
+const HIDDEN_ATTRIBUTE = "data-youtube-video-hider-hidden";
+const CARD_SELECTOR = [
+  "ytd-rich-item-renderer",
+  "ytd-video-renderer",
+  "ytd-grid-video-renderer",
+  "ytd-compact-video-renderer",
+  "ytd-playlist-video-renderer",
+  "ytd-reel-item-renderer",
+  "yt-lockup-view-model",
+].join(",");
 
-  videoItems.forEach((item:any) => {
-    const titleElement = item.querySelector('#video-title') as HTMLElement;
-    if (!titleElement) return;
+let settings: FilterSettings = { keywords: [], enabled: true };
+let scanQueued = false;
 
-    const title = titleElement.innerText.toLowerCase();
-    const matches = blacklist.some(keyword => title.includes(keyword.toLowerCase()));
-    
-    if (matches) {
-      item.setAttribute('data-hidden-by-extension', 'true');
+const style = document.createElement("style");
+style.textContent = `[${HIDDEN_ATTRIBUTE}="true"] { display: none !important; }`;
+(document.head || document.documentElement).appendChild(style);
 
-      const overlay = document.createElement('div');
-      overlay.style.cssText = `
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.8);
-        color: white;
-        font-size: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 100;
-      `;
-      overlay.textContent = "Hidden by YouTube Video Hider";
-
-      item.style.position = "relative";
-      item.appendChild(overlay);
-    }
-  });
+function normalize(value: string): string {
+  return value.normalize("NFKC").toLocaleLowerCase().replace(/\s+/g, " ").trim();
 }
 
-// Run on page load and on dynamic changes (YouTube is SPA)
-new MutationObserver(hideVideos).observe(document.body, {
-  childList: true,
-  subtree: true
+function titleFor(card: Element): string {
+  const title = card.querySelector<HTMLElement>(
+    "#video-title, a[title], h3"
+  );
+  return normalize(title?.innerText || title?.getAttribute("title") || title?.textContent || "");
+}
+
+function updateCard(card: Element): void {
+  const title = titleFor(card);
+  const shouldHide = settings.enabled && title.length > 0 && settings.keywords.some((keyword) => title.includes(keyword));
+  if (shouldHide) {
+    card.setAttribute(HIDDEN_ATTRIBUTE, "true");
+  } else {
+    card.removeAttribute(HIDDEN_ATTRIBUTE);
+  }
+}
+
+function scanCards(): void {
+  scanQueued = false;
+  document.querySelectorAll(CARD_SELECTOR).forEach(updateCard);
+  document.documentElement.dataset.youtubeVideoHiderEnabled = String(settings.enabled);
+  document.documentElement.dataset.youtubeVideoHiderHiddenCount = String(
+    document.querySelectorAll(`[${HIDDEN_ATTRIBUTE}="true"]`).length
+  );
+}
+
+function scheduleScan(): void {
+  if (scanQueued) return;
+  scanQueued = true;
+  window.requestAnimationFrame(scanCards);
+}
+
+function parseSettings(value: unknown): FilterSettings {
+  const raw = value && typeof value === "object" ? value as Partial<FilterSettings> : {};
+  return {
+    keywords: Array.isArray(raw.keywords)
+      ? raw.keywords.filter((word): word is string => typeof word === "string").map(normalize).filter(Boolean)
+      : [],
+    enabled: typeof raw.enabled === "boolean" ? raw.enabled : true,
+  };
+}
+
+chrome.storage.sync.get(SETTINGS_KEY, (result) => {
+  settings = parseSettings(result[SETTINGS_KEY]);
+  scheduleScan();
 });
 
-hideVideos();
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "sync" || !changes[SETTINGS_KEY]) return;
+  settings = parseSettings(changes[SETTINGS_KEY].newValue);
+  scheduleScan();
+});
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "youtube-video-hider:count") {
+    sendResponse({ hiddenCount: document.querySelectorAll(`[${HIDDEN_ATTRIBUTE}="true"]`).length });
+    return;
+  }
+  if (message?.type !== "youtube-video-hider:settings") return;
+  settings = parseSettings(message.settings);
+  scanCards();
+});
+
+const observer = new MutationObserver(scheduleScan);
+observer.observe(document.documentElement, { childList: true, subtree: true });
+
+// YouTube navigation often changes the current view without replacing the document.
+window.addEventListener("yt-navigate-finish", scheduleScan);
+})();

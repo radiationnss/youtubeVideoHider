@@ -3,7 +3,7 @@
   "name": "YouTube Video Hider",
   "version": "1.0",
   "description": "Hide YouTube videos with unwanted keywords.",
-  "permissions": ["scripting"],
+  "permissions": ["storage"],
   "content_scripts": [
     {
       "matches": ["*://www.youtube.com/*"],
